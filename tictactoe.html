@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Tic Tac Toe</title>
+ <style>
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #fff;
+    overflow: hidden;
+  }
+
+  .hidden {
+    display: none;
+  }
+
+  .mode-selection {
+    text-align: center;
+    animation: fadeIn 1s ease-in-out;
+  }
+
+  .mode-selection h1 {
+    font-size: 3.5em;
+    margin-bottom: 10px;
+    color: #00ffe0;
+    text-shadow: 2px 2px 8px #000;
+    animation: pulse 2s infinite;
+  }
+
+  .mode-selection p {
+    font-size: 1.8em;
+    margin-bottom: 20px;
+  }
+
+  .mode-selection button {
+    padding: 18px 36px;
+    margin: 10px;
+    font-size: 1.4em;
+    font-weight: bold;
+    cursor: pointer;
+    border: none;
+    border-radius: 10px;
+    background: #00c3ff;
+    color: #fff;
+    box-shadow: 0 0 15px #00c3ff;
+    transition: 0.3s;
+  }
+
+  .mode-selection button:hover {
+    background: #00ffe0;
+    color: #000;
+    box-shadow: 0 0 25px #00ffe0;
+    transform: scale(1.05);
+  }
+
+  .scoreboard {
+    margin-bottom: 15px;
+    font-size: 1.3em;
+    animation: slideDown 0.7s ease-in-out;
+  }
+
+  #status {
+    color: #ffcc00;
+    animation: pulse 1.5s infinite;
+  }
+
+  .board {
+    display: grid;
+    grid-template-columns: repeat(3, 100px);
+    gap: 8px;
+    margin: 10px auto;
+    animation: slideUp 0.8s ease-in-out;
+  }
+
+  .cell {
+    width: 100px;
+    height: 100px;
+    background-color: rgba(255,255,255,0.9);
+    color: #000;
+    font-size: 2.5em;
+    font-weight: bold;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 0 10px #000;
+    transition: background 0.3s ease;
+  }
+
+  .cell:hover {
+    background-color: #a3f7bf;
+  }
+
+  button.restart-btn {
+    padding: 12px 28px;
+    margin: 10px;
+    font-size: 1.1em;
+    font-weight: bold;
+    cursor: pointer;
+    border: none;
+    border-radius: 8px;
+    background-color: #444;
+    color: #fff;
+    transition: 0.3s;
+    box-shadow: 0 0 10px #000;
+  }
+
+  button.restart-btn:hover {
+    background-color: #fff;
+    color: #000;
+    transform: scale(1.05);
+  }
+
+  #finalMessage {
+    font-size: 1.6em;
+    font-weight: bold;
+    margin-top: 20px;
+    color: #00ff99;
+    animation: fadeIn 0.5s ease-in-out;
+  }
+
+  /* Animations */
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(100px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  @keyframes slideDown {
+    from { transform: translateY(-40px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+</style>
+
+</head>
+<body>
+
+  <!-- Mode selection screen -->
+  <div id="modeScreen" class="mode-selection">
+    <h1>Tic Tac Toe</h1>
+    <p><strong>Select Game Mode</strong></p>
+    <button onclick="startGame('2p')">🎮 2 Player</button>
+    <button onclick="startGame('ai')">🤖 Vs Computer</button>
+  </div>
+
+  <!-- Game area -->
+  <div id="gameScreen" class="hidden">
+    <div class="scoreboard">
+      <p>Score - X: <span id="scoreX">0</span> | O: <span id="scoreO">0</span></p>
+      <p id="status">Current Turn: X</p>
+    </div>
+
+    <div class="board" id="board"></div>
+    <div id="finalMessage"></div>
+
+    <button class="restart-btn" onclick="restartGame()">Restart</button>
+    <button class="restart-btn" onclick="backToMode()">Back to Mode Selection</button>
+  </div>
+
+  <script>
+    const board = document.getElementById('board');
+    const statusText = document.getElementById('status');
+    const scoreX = document.getElementById('scoreX');
+    const scoreO = document.getElementById('scoreO');
+    const finalMessage = document.getElementById('finalMessage');
+    const modeScreen = document.getElementById('modeScreen');
+    const gameScreen = document.getElementById('gameScreen');
+
+    let cells = Array(9).fill("");
+    let currentPlayer = "X";
+    let gameOver = false;
+    let scores = { X: 0, O: 0 };
+    let isVsComputer = false;
+
+    function startGame(mode) {
+      isVsComputer = mode === 'ai';
+      modeScreen.classList.add('hidden');
+      gameScreen.classList.remove('hidden');
+      restartGame();
+    }
+
+    function drawBoard() {
+      board.innerHTML = "";
+      cells.forEach((val, index) => {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.textContent = val;
+        cell.addEventListener('click', () => handleCellClick(index));
+        board.appendChild(cell);
+      });
+    }
+
+    function handleCellClick(index) {
+      if (gameOver || cells[index]) return;
+
+      cells[index] = currentPlayer;
+      drawBoard();
+
+      if (checkWinner(currentPlayer)) {
+        scores[currentPlayer]++;
+        updateScore();
+        showWinnerAndRunner(currentPlayer);
+        gameOver = true;
+        return;
+      }
+
+      if (!cells.includes("")) {
+        statusText.textContent = "";
+        finalMessage.textContent = "🤝 It's a Draw! No Winner or Runner.";
+        finalMessage.style.color = "#888";
+        gameOver = true;
+        return;
+      }
+
+      currentPlayer = currentPlayer === "X" ? "O" : "X";
+      statusText.textContent = `Current Turn: ${currentPlayer}`;
+
+      if (isVsComputer && currentPlayer === "O") {
+        setTimeout(computerMove, 400);
+      }
+    }
+
+    function computerMove() {
+      const emptyIndices = cells
+        .map((val, i) => val === "" ? i : null)
+        .filter(i => i !== null);
+      const randomIndex = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+      handleCellClick(randomIndex);
+    }
+
+    function checkWinner(player) {
+      const winPatterns = [
+        [0,1,2],[3,4,5],[6,7,8],
+        [0,3,6],[1,4,7],[2,5,8],
+        [0,4,8],[2,4,6]
+      ];
+      return winPatterns.some(pattern =>
+        pattern.every(i => cells[i] === player)
+      );
+    }
+
+    function showWinnerAndRunner(winner) {
+      const runner = winner === "X" ? "O" : "X";
+      statusText.textContent = "";
+      finalMessage.textContent = `🏆 Winner: ${winner} | 🥈 Runner: ${runner}`;
+      finalMessage.style.color = "#007b00";
+    }
+
+    function updateScore() {
+      scoreX.textContent = scores["X"];
+      scoreO.textContent = scores["O"];
+    }
+
+    function restartGame() {
+      cells = Array(9).fill("");
+      currentPlayer = "X";
+      gameOver = false;
+      statusText.textContent = `Current Turn: ${currentPlayer}`;
+      finalMessage.textContent = "";
+      finalMessage.style.color = "#333";
+      drawBoard();
+    }
+
+    function backToMode() {
+      gameScreen.classList.add('hidden');
+      modeScreen.classList.remove('hidden');
+      finalMessage.textContent = "";
+      statusText.textContent = "";
+    }
+
+    drawBoard();
+  </script>
+</body>
+</html>
